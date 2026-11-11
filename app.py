@@ -8,44 +8,85 @@ import plotly.graph_objects as go
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Border, Side
 
-# Konfigurasi Halaman & Tema Cerah
+# Konfigurasi Halaman Streamlit
 st.set_page_config(
-    page_title="Geometri Jalan Interaktif - Bina Marga",
+    page_title="Geometri Jalan Interaktif - Pinky Edition",
     layout="wide",
-    page_icon="🛣️"
+    page_icon="🌸"
 )
 
-# Custom CSS untuk Tampilan Cerah, Bersih, dan Modern
+# Custom CSS untuk Tema Gradasi Pinky Sky (Biru Muda ke Pink Soft)
 st.markdown("""
 <style>
+    /* Gradient Background Utama */
     .stApp {
-        background-color: #F8F9FA;
-        color: #212529;
+        background: linear-gradient(180deg, #a1c4fd 0%, #c2e9fb 30%, #fbc2eb 70%, #a6c1ee 100%);
+        color: #4A4A4A;
+        font-family: 'Poppins', sans-serif;
     }
+    
+    /* Custom Sidebar Gradient */
     div[data-testid="stSidebar"] {
-        background-color: #FFFFFF;
-        border-right: 1px solid #E9ECEF;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(253, 226, 243, 0.85) 100%);
+        backdrop-filter: blur(10px);
+        border-right: 2px solid #F8BBD0;
     }
+    
+    /* Card Container & Tab Styling */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: rgba(255, 255, 255, 0.6);
+        border-radius: 15px;
+        padding: 5px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        color: #6A1B9A;
+        font-weight: 600;
+        border-radius: 10px;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #F48FB1 !important;
+        color: white !important;
+    }
+    
+    /* Custom Buttons */
+    .stButton>button {
+        background: linear-gradient(45deg, #EC407A, #F48FB1);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-weight: bold;
+        box-shadow: 0px 4px 10px rgba(236, 64, 121, 0.3);
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        background: linear-gradient(45deg, #D81B60, #EC407A);
+        box-shadow: 0px 6px 15px rgba(236, 64, 121, 0.5);
+        transform: translateY(-2px);
+    }
+    
+    /* Card Keterangan Status Warna Mobil */
     .status-card {
         padding: 15px;
-        border-radius: 10px;
+        border-radius: 15px;
         margin-bottom: 15px;
         font-weight: bold;
+        backdrop-filter: blur(5px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
     }
     .status-oke {
-        background-color: #D4EDDA;
-        color: #155724;
-        border: 1px solid #C3E6CB;
+        background-color: rgba(200, 230, 201, 0.85);
+        color: #1B5E20;
+        border: 2px solid #81C784;
     }
     .status-sedang {
-        background-color: #FFF3CD;
-        color: #856404;
-        border: 1px solid #FFEEBA;
+        background-color: rgba(255, 245, 157, 0.85);
+        color: #F57F17;
+        border: 2px solid #FFF176;
     }
     .status-bahaya {
-        background-color: #F8D7DA;
-        color: #721C24;
-        border: 1px solid #F5C6CB;
+        background-color: rgba(255, 205, 210, 0.85);
+        color: #B71C1C;
+        border: 2px solid #E57373;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -60,17 +101,17 @@ if not st.session_state.authenticated:
     col_top1, col_top2 = st.columns([4, 1])
     with col_top2:
         st.markdown(
-            "<p style='text-align: right; font-size: 12px; color: #6c757d; margin: 0;'>pw: "
-            "<span style='font-family: monospace; font-weight: bold; color: #0d6efd;'>cantikaaa27</span></p>",
+            "<p style='text-align: right; font-size: 12px; color: #AD1457; margin: 0;'>pw: "
+            "<span style='font-family: monospace; font-weight: bold; color: #D81B60;'>cantikaaa27</span></p>",
             unsafe_allow_html=True
         )
 
-    st.markdown("<h1 style='text-align: center; color: #0f5132;'>🛣️ Perencanaan Geometrik Jalan Interaktif</h1>", unsafe_allow_html=True)
-    st.markdown("<h4 style='text-align: center; color: #6c757d;'>Standar TPGJAK 1997 / RAE 2021</h4>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #8E24AA;'>🌸 Perencanaan Geometrik Jalan Interaktif</h1>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; color: #D81B60;'>Standar TPGJAK 1997 / RAE 2021</h4>", unsafe_allow_html=True)
     
     st.image(
         "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1200&auto=format&fit=crop",
-        caption="Aplikasi Perencanaan Geometrik Jalan Interaktif & Visualisasi 3D",
+        caption="Aplikasi Perencanaan Geometrik Jalan Interaktif (Pinky Edition)",
         use_column_width=True
     )
     st.markdown("---")
@@ -233,7 +274,7 @@ def hitung_profil(pvi_df, V):
 # 3. SIDEBAR INPUT & SYSTEM CALCULATIONS
 # ----------------------------------------------------------------------------
 with st.sidebar:
-    st.header("⚙️ Parameter Rencana Jalan")
+    st.header("⚙️ Parameter Rencana")
     if st.button("🚪 Keluar / Logout", use_container_width=True):
         st.session_state.authenticated = False
         st.rerun()
@@ -289,7 +330,7 @@ if "tanah_df" not in st.session_state:
         "Elevasi Tanah (m)": [101.0, 103.5, 104.0, 102.5, 101.8, 105.0, 106.5]
     })
 
-# Session State untuk Animasi Mobil Jalan
+# Session State Animasi Mobil
 if "anim_active" not in st.session_state:
     st.session_state.anim_active = False
 if "anim_sta_idx" not in st.session_state:
@@ -306,16 +347,16 @@ else:
 # ----------------------------------------------------------------------------
 def generate_excel_bm2021(r, pvi_data):
     wb = openpyxl.Workbook()
-    font_title = Font(name="Calibri", size=14, bold=True, color="1F4E78")
+    font_title = Font(name="Calibri", size=14, bold=True, color="8E24AA")
     font_header = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-    fill_header = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
-    fill_input = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
-    border_thin = Border(left=Side(style='thin', color='D9D9D9'), right=Side(style='thin', color='D9D9D9'),
-                         top=Side(style='thin', color='D9D9D9'), bottom=Side(style='thin', color='D9D9D9'))
+    fill_header = PatternFill(start_color="EC407A", end_color="EC407A", fill_type="solid")
+    fill_input = PatternFill(start_color="FCE4EC", end_color="FCE4EC", fill_type="solid")
+    border_thin = Border(left=Side(style='thin', color='F8BBD0'), right=Side(style='thin', color='F8BBD0'),
+                         top=Side(style='thin', color='F8BBD0'), bottom=Side(style='thin', color='F8BBD0'))
 
     ws1 = wb.active
     ws1.title = "Tikungan Horisontal"
-    ws1["A1"] = "REKAPITULASI CALCULASI GEOMETRIK JALAN (BINA MARGA 2021)"
+    ws1["A1"] = "REKAPITULASI KALKULASI GEOMETRIK JALAN (BINA MARGA 2021)"
     ws1["A1"].font = font_title
 
     headers = ["Parameter Geometrik", "Nilai", "Satuan", "Formula / Acuan BM 2021"]
@@ -416,9 +457,9 @@ def export_dxf_full_autocad(x_h, y_h, z_e, s_v, r_dict, B_w, nx_v, ny_v):
     return "\n".join(lines)
 
 # ----------------------------------------------------------------------------
-# 5. TAMPILAN APLIKASI UTAMA (TABS TEMA CERAH)
+# 5. TAMPILAN APLIKASI UTAMA (TABS TEMA PINKY GRADIENT)
 # ----------------------------------------------------------------------------
-st.title("🛣️ Geometri Jalan Interaktif & Visualisasi 3D")
+st.markdown("<h1 style='color: #6A1B9A; text-align: center;'>🌸 Geometri Jalan Interaktif & Simulasi 3D</h1>", unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📍 Denah Tikungan (2D)", 
@@ -435,12 +476,12 @@ with tab1:
     st.subheader("📍 Visualisasi Denah Trase Tikungan 2D")
     
     fig_2d = go.Figure()
-    fig_2d.add_trace(go.Scatter(x=x_horiz, y=y_horiz, mode='lines', name='As Jalan', line=dict(color='#0d6efd', width=3)))
+    fig_2d.add_trace(go.Scatter(x=x_horiz, y=y_horiz, mode='lines', name='As Jalan', line=dict(color='#8E24AA', width=3)))
     
     xl, yl = x_horiz + (B/2) * nx, y_horiz + (B/2) * ny
     xr, yr = x_horiz - (B/2) * nx, y_horiz - (B/2) * ny
-    fig_2d.add_trace(go.Scatter(x=xl, y=yl, mode='lines', name='Tepi Kiri', line=dict(color='#6c757d', dash='dash')))
-    fig_2d.add_trace(go.Scatter(x=xr, y=yr, mode='lines', name='Tepi Kanan', line=dict(color='#6c757d', dash='dash')))
+    fig_2d.add_trace(go.Scatter(x=xl, y=yl, mode='lines', name='Tepi Kiri', line=dict(color='#EC407A', dash='dash')))
+    fig_2d.add_trace(go.Scatter(x=xr, y=yr, mode='lines', name='Tepi Kanan', line=dict(color='#EC407A', dash='dash')))
     
     fc = r["jenis"].startswith("Full")
     t1_lbl, t2_lbl = ("TC", "CT") if fc else ("TS", "ST")
@@ -461,7 +502,7 @@ with tab1:
 
     fig_2d.add_trace(go.Scatter(
         x=pts_x, y=pts_y, mode='markers+text', name='Titik Utama Tikungan',
-        marker=dict(size=10, color='#dc3545', symbol='diamond'),
+        marker=dict(size=10, color='#D81B60', symbol='diamond'),
         text=pts_txt, textposition="top center"
     ))
 
@@ -470,7 +511,7 @@ with tab1:
         xaxis_title="Koordinat X (m)", yaxis_title="Koordinat Y (m)",
         template="plotly_white", showlegend=True,
         yaxis=dict(scaleanchor="x", scaleratio=1),
-        plot_bgcolor="#FFFFFF", paper_bgcolor="#FFFFFF"
+        plot_bgcolor="rgba(255,255,255,0.7)", paper_bgcolor="rgba(255,255,255,0)"
     )
     st.plotly_chart(fig_2d, use_container_width=True)
 
@@ -508,15 +549,15 @@ with tab2:
             e_right[i] = -en_val
             
     fig_sup = go.Figure()
-    fig_sup.add_trace(go.Scatter(x=s_sup, y=e_left, mode='lines', name='Tepi Kiri Jalan', line=dict(color='#0d6efd', width=2.5)))
-    fig_sup.add_trace(go.Scatter(x=s_sup, y=e_right, mode='lines', name='Tepi Kanan Jalan', line=dict(color='#dc3545', width=2.5)))
-    fig_sup.add_trace(go.Scatter(x=s_sup, y=np.zeros_like(s_sup), mode='lines', name='As Jalan (0%)', line=dict(color='#212529', dash='dash')))
+    fig_sup.add_trace(go.Scatter(x=s_sup, y=e_left, mode='lines', name='Tepi Kiri Jalan', line=dict(color='#8E24AA', width=2.5)))
+    fig_sup.add_trace(go.Scatter(x=s_sup, y=e_right, mode='lines', name='Tepi Kanan Jalan', line=dict(color='#EC407A', width=2.5)))
+    fig_sup.add_trace(go.Scatter(x=s_sup, y=np.zeros_like(s_sup), mode='lines', name='As Jalan (0%)', line=dict(color='#4A4A4A', dash='dash')))
     
     fig_sup.update_layout(
         title="Diagram Transisi Superelevasi Perkerasan Jalan",
         xaxis_title="Stasioning STA (m)", yaxis_title="Kemiringan Elevasi / Superelevasi (%)",
         template="plotly_white", showlegend=True,
-        plot_bgcolor="#FFFFFF", paper_bgcolor="#FFFFFF"
+        plot_bgcolor="rgba(255,255,255,0.7)", paper_bgcolor="rgba(255,255,255,0)"
     )
     st.plotly_chart(fig_sup, use_container_width=True)
 
@@ -536,30 +577,30 @@ with tab3:
         
     st.markdown("---")
     
-    # Indikator Keterangan Warna Mobil
+    # Indikator Keterangan Warna Mobil (Warna Tegas untuk Penanda Status)
     v_safe = r["v_safe"]
     if v_sim <= v_safe:
-        car_color = "#198754"  # Hijau Oke
+        car_color = "#2E7D32"  # Hijau Oke
         status_box = f"""
         <div class="status-card status-oke">
-            🟢 <b>KONDISI HIJAU (OKE):</b> Mobil Melaju Aman!<br>
-            Kecepatan simulasi ({v_sim} km/jam) masih di bawah batas aman tikungan ({v_safe:.1f} km/jam).
+            🟢 <b>KONDISI HIJAU (OKE):</b> Mobil Melaju Sangat Aman!<br>
+            Kecepatan simulasi ({v_sim} km/jam) berada di bawah batas kecepatan aman tikungan ({v_safe:.1f} km/jam).
         </div>
         """
     elif v_sim <= v_safe + 10:
-        car_color = "#ffc107"  # Kuning Sedang
+        car_color = "#F57F17"  # Kuning Sedang
         status_box = f"""
         <div class="status-card status-sedang">
             🟡 <b>KONDISI KUNING (SEDANG / WASPADA):</b> Mobil Mendekati Batas Aman!<br>
-            Kecepatan simulasi ({v_sim} km/jam) sedikit melampaui V_aman ({v_safe:.1f} km/jam). Pengemudi harus berhati-hati.
+            Kecepatan simulasi ({v_sim} km/jam) sedikit melampaui V_aman ({v_safe:.1f} km/jam). Harap kurangi kecepatan.
         </div>
         """
     else:
-        car_color = "#dc3545"  # Merah Tidak Oke
+        car_color = "#C62828"  # Merah Tidak Oke
         status_box = f"""
         <div class="status-card status-bahaya">
             🔴 <b>KONDISI MERAH (TIDAK OKE / BAHAYA):</b> Over-Speed!<br>
-            Kecepatan simulasi ({v_sim} km/jam) jauh melebihi batas aman tikungan ({v_safe:.1f} km/jam). Berisiko terjadi kecelakaan/selip.
+            Kecepatan simulasi ({v_sim} km/jam) melampaui batas aman ({v_safe:.1f} km/jam). Berisiko selip atau kecelakaan.
         </div>
         """
         
@@ -586,7 +627,6 @@ with tab3:
         float(s_vals[current_idx]), 5.0
     )
     
-    # Update index jika slider digeser manual
     if not st.session_state.anim_active:
         st.session_state.anim_sta_idx = np.argmin(np.abs(s_vals - selected_sta))
         current_idx = st.session_state.anim_sta_idx
@@ -599,12 +639,12 @@ with tab3:
     # As Jalan 3D
     fig_3d.add_trace(go.Scatter3d(
         x=x_horiz, y=y_horiz, z=z_elev, mode='lines', name='As Jalan 3D',
-        line=dict(color='#212529', width=6)
+        line=dict(color='#4A148C', width=6)
     ))
     
     # Tepi Kiri & Kanan 3D
-    fig_3d.add_trace(go.Scatter3d(x=xl, y=yl, z=z_elev, mode='lines', name='Tepi Kiri 3D', line=dict(color='#6c757d', width=3)))
-    fig_3d.add_trace(go.Scatter3d(x=xr, y=yr, z=z_elev, mode='lines', name='Tepi Kanan 3D', line=dict(color='#6c757d', width=3)))
+    fig_3d.add_trace(go.Scatter3d(x=xl, y=yl, z=z_elev, mode='lines', name='Tepi Kiri 3D', line=dict(color='#F48FB1', width=3)))
+    fig_3d.add_trace(go.Scatter3d(x=xr, y=yr, z=z_elev, mode='lines', name='Tepi Kanan 3D', line=dict(color='#F48FB1', width=3)))
     
     # Marker Posisi Mobil Berjalan
     fig_3d.add_trace(go.Scatter3d(
@@ -631,7 +671,7 @@ with tab3:
             aspectmode='data', camera_eye=camera_eye
         ),
         margin=dict(l=0, r=0, b=0, t=40),
-        paper_bgcolor="#FFFFFF"
+        paper_bgcolor="rgba(255,255,255,0)"
     )
     st.plotly_chart(fig_3d, use_container_width=True)
 
@@ -640,7 +680,7 @@ with tab3:
         time.sleep(speed_delay)
         st.session_state.anim_sta_idx += 2
         if st.session_state.anim_sta_idx >= len(s_vals):
-            st.session_state.anim_sta_idx = 0  # Loop kembali ke awal
+            st.session_state.anim_sta_idx = 0
         st.rerun()
 
 # ----------------------------------------------------------------------------
@@ -655,18 +695,18 @@ with tab4:
         
         fig_prof.add_trace(go.Scatter(
             x=t_df.iloc[:, 0], y=t_df.iloc[:, 1], mode='lines+markers',
-            name='Elevasi Tanah Asli', line=dict(color='#198754', dash='dash')
+            name='Elevasi Tanah Asli', line=dict(color='#2E7D32', dash='dash')
         ))
         fig_prof.add_trace(go.Scatter(
             x=s_vals, y=z_elev, mode='lines', name='Elevasi Rencana Jalan',
-            line=dict(color='#dc3545', width=3)
+            line=dict(color='#D81B60', width=3)
         ))
         
         pvi_x = P_global["sta"]
         pvi_y = P_global["el"]
         fig_prof.add_trace(go.Scatter(
             x=pvi_x, y=pvi_y, mode='markers+text', name='Titik PVI',
-            marker=dict(size=8, color='#0d6efd', symbol='x'),
+            marker=dict(size=8, color='#8E24AA', symbol='x'),
             text=[f"PVI-{i+1}" for i in range(len(pvi_x))], textposition="top center"
         ))
 
@@ -674,7 +714,7 @@ with tab4:
             title="Grafik Profil Memanjang Vertikal (Tanah Asli vs Rencana)",
             xaxis_title="Stasioning STA (m)", yaxis_title="Elevasi Z (m)",
             template="plotly_white", showlegend=True,
-            plot_bgcolor="#FFFFFF", paper_bgcolor="#FFFFFF"
+            plot_bgcolor="rgba(255,255,255,0.7)", paper_bgcolor="rgba(255,255,255,0)"
         )
         st.plotly_chart(fig_prof, use_container_width=True)
 
