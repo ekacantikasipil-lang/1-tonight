@@ -1,11 +1,11 @@
 """
 Aplikasi Perencanaan Geometrik Jalan Interaktif (TPGJAK Bina Marga 1997)
-Fitur Pembaruan:
-- Visualisasi Plotly 2D & 3D (Driver's Eye View & Animasi Frame-by-Frame tanpa time.sleep)
+Fitur:
+- Visualisasi Plotly 2D & 3D (Driver's Eye View & Animasi Frame-by-Frame)
 - Pewarnaan Dinamis Mobil (Hijau/Kuning/Merah berdasarkan Batas Kecepatan Safe Speed & Kelandaian)
 - Import Data Survei (CSV / Excel Total Station & GPS)
-- Ekspor DXF (CAD) & KML (Google Earth)
-- Overlay Trase di Peta Satelit / OpenStreetMap (Koordinat UTM & Lat-Long via Pyproj & Plotly/Folium)
+- Ekspor DXF (CAD R12 Polyline 3D) & KML (Google Earth)
+- Overlay Trase di Peta Satelit / OpenStreetMap
 """
 
 import io
@@ -18,7 +18,6 @@ import plotly.express as px
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
-import pyproj
 
 st.set_page_config(page_title="Perencanaan Geometrik Jalan 3D & GIS", layout="wide")
 
@@ -140,6 +139,8 @@ def heading(s, Ls, Lc, Rc, dl):
 
 def hitung_profil(pvi, V):
     d = pvi.dropna().sort_values(pvi.columns[0]).reset_index(drop=True)
+    if len(d) < 2:
+        return None
     sta = d.iloc[:, 0].to_numpy(float)
     el = d.iloc[:, 1].to_numpy(float)
     lvm = d.iloc[:, 2].to_numpy(float)
@@ -178,26 +179,23 @@ def hitung_profil(pvi, V):
     return dict(sta=sta, el=el, g=g * 100, kurva=kurva, x=x, y=y, Jh=Jh)
 
 # ----------------------------------------------------------------------------
-# EXPORT KE DXF & KML MANUAL (TANPA DEPENDENCY EKSTERNAL BERAT)
+# EXPORT CAD & KML
 # ----------------------------------------------------------------------------
 def export_dxf_text(x_coords, y_coords, z_coords=None):
-    """Menghasilkan isi file DXF AutoCAD R12 (ASCII Header & Entities)"""
     lines = ["0", "SECTION", "2", "HEADER", "0", "ENDSEC", "0", "SECTION", "2", "ENTITIES"]
     if z_coords is None:
         z_coords = [0.0] * len(x_coords)
     
-    # Buat POLYLINE 3D
     lines.extend(["0", "POLYLINE", "8", "TRASE_JALAN", "66", "1", "70", "8"])
     for x, y, z in zip(x_coords, y_coords, z_coords):
-        lines.extend(["0", "VERTEX", "8", "TRASE_JALAN", "10", f"{x:.4f}", "20", f"{y:.4f}", "30", f"{z:.4f}"])
+        lines.extend(["0", "VERTEX", "8", "TRASE_JALAN", "10", f"{float(x):.4f}", "20", f"{float(y):.4f}", "30", f"{float(z):.4f}"])
     lines.extend(["0", "SEQEND", "0", "ENDSEC", "0", "EOF"])
     return "\n".join(lines)
 
 def export_kml_text(lats, lons, elevations=None):
-    """Menghasilkan file KML untuk Google Earth"""
     if elevations is None:
         elevations = [0.0] * len(lats)
-    coord_str = " ".join([f"{lon:.7f},{lat:.7f},{el:.2f}" for lat, lon, el in zip(lats, lons, elevations)])
+    coord_str = " ".join([f"{float(lon):.7f},{float(lat):.7f},{float(el):.2f}" for lat, lon, el in zip(lats, lons, elevations)])
     kml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
@@ -305,7 +303,7 @@ def generate_excel_with_formulas(r, P=None, df_earthwork=None):
         elif unit in ["m", "deg"]:
             c_val.number_format = '#,##0.00'
 
-    if P and len(P["kurva"]) > 0:
+    if P and "kurva" in P and len(P["kurva"]) > 0:
         ws2 = wb.create_sheet(title="Lengkung Vertikal")
         ws2.views.sheetView[0].showGridLines = True
         ws2["A1"] = "PERHITUNGAN LENGKUNG VERTIKAL"
@@ -366,7 +364,7 @@ def generate_excel_with_formulas(r, P=None, df_earthwork=None):
     return buf.getvalue()
 
 # ----------------------------------------------------------------------------
-# STREAMLIT INTERFACE
+# STREAMLIT APPLICATION INITIALIZATION
 # ----------------------------------------------------------------------------
 st.title("🛣️ Perencanaan Geometrik Jalan (Plotly 3D & GIS)")
 st.caption("Aplikasi Interaktif: Visualisasi Plotly 2D/3D, Animasi Frame, Evaluasi Kecepatan Safe Speed, Import Survey Data & Ekspor DXF/KML")
@@ -393,11 +391,11 @@ with st.sidebar:
     arah = st.radio("Arah Tikungan", ["Kanan", "Kiri"], horizontal=True)
     B = st.number_input("Lebar Badan Jalan (m)", 3.0, 30.0, 7.0, 0.5)
 
+# --- PERHITUNGAN GEOMETRI HORISONTAL GLOBAL ---
 r = hitung_tikungan(V, delta, emax, en, Rc, sta_pi)
 if Rc < Rmin:
     st.error(f"⚠️ Rc = {Rc:.1f} m lebih kecil dari R minimum ({Rmin:.1f} m). Perbesar Rc.")
 
-# Calculate 2D Alignment Coordinates
 sg = 1 if arah == "Kiri" else -1
 Ls, Lc = r["Ls"], r["Lc"]
 dl = math.radians(r["delta"])
@@ -411,14 +409,43 @@ x_horiz = np.concatenate([[0], np.cumsum(dS * (np.cos(th_vals[:-1]) + np.cos(th_
 y_horiz = np.concatenate([[0], np.cumsum(dS * (np.sin(th_vals[:-1]) + np.sin(th_vals[1:])) / 2)])
 i0 = np.argmin(np.abs(s_vals))
 x_horiz, y_horiz = x_horiz - x_horiz[i0], (y_horiz - y_horiz[i0]) * sg
-
-# Calculate Safe Speed on Horizontal Curve
-# V_safe = sqrt(127 * Rc * (e + f_max))
+ths_ = th_vals * sg
+nx, ny = -np.sin(ths_), np.cos(ths_)
 v_safe_horiz = math.sqrt(127 * Rc * (r["e"] + f_max(V)))
 
-P_global = None
-df_earthwork_global = None
+# --- INITIALISATION DEFAULT SESSION STATE (Mencegah NameError/AttributeError) ---
+if "pvi_df" not in st.session_state:
+    st.session_state.pvi_df = pd.DataFrame({
+        "STA (m)": [0.0, 200.0, 400.0, 600.0],
+        "Elevasi rencana (m)": [100.0, 104.0, 102.0, 106.0],
+        "Lv manual (m)": [0.0, 0.0, 0.0, 0.0]
+    })
 
+if "tanah_df" not in st.session_state:
+    st.session_state.tanah_df = pd.DataFrame({
+        "STA (m)": [0.0, 100.0, 200.0, 300.0, 400.0, 500.0, 600.0],
+        "Elevasi tanah asli (m)": [100.5, 102.3, 103.0, 103.4, 102.6, 103.9, 105.2]
+    })
+
+# --- PERHITUNGAN PROFIL VERTIKAL GLOBAL ---
+P_global = hitung_profil(st.session_state.pvi_df, V)
+if P_global is not None:
+    z_elev = np.interp(s_vals, P_global["x"], P_global["y"])
+    t_df = st.session_state.tanah_df.dropna().sort_values(st.session_state.tanah_df.columns[0])
+    xs = np.arange(math.ceil(P_global["x"][0] / 50) * 50, P_global["x"][-1] + 0.1, 50)
+    rn = np.interp(xs, P_global["x"], P_global["y"])
+    ta = np.interp(xs, t_df.iloc[:, 0], t_df.iloc[:, 1])
+    df_earthwork_global = pd.DataFrame({
+        "STA_val": xs,
+        "STA": [sta_str(v, 0) for v in xs], "Elevasi rencana (m)": rn.round(3),
+        "Elevasi tanah (m)": ta.round(3), "Selisih (m)": (rn - ta).round(3),
+        "Keterangan": np.where(rn - ta > 0, "Timbunan", "Galian")
+    })
+else:
+    z_elev = np.zeros_like(s_vals)
+    df_earthwork_global = None
+
+# --- TABS APP ---
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📍 Denah Tikungan (Plotly 2D)", 
     "📈 Diagram Superelevasi", 
@@ -432,17 +459,10 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # ----------------------------------------------------------------------------
 with tab1:
     fig_2d = go.Figure()
-    
-    # As Jalan
     fig_2d.add_trace(go.Scatter(x=x_horiz, y=y_horiz, mode='lines', name='As Jalan', line=dict(color='black', width=3)))
-    
-    # Tepi Jalan (Offset)
-    ths_ = th_vals * sg
-    nx, ny = -np.sin(ths_), np.cos(ths_)
     fig_2d.add_trace(go.Scatter(x=x_horiz + B/2 * nx, y=y_horiz + B/2 * ny, mode='lines', name='Tepi Kiri', line=dict(color='gray', width=1)))
     fig_2d.add_trace(go.Scatter(x=x_horiz - B/2 * nx, y=y_horiz - B/2 * ny, mode='lines', name='Tepi Kanan', line=dict(color='gray', width=1)))
     
-    # Titik-titik Utama
     fc = r["jenis"].startswith("Full")
     keys = [("TC", 0), ("CT", Lc)] if fc else ([("TS", 0), ("SC=CS", Ls), ("ST", Ltot)] if Lc == 0 else [("TS", 0), ("SC", Ls), ("CS", Ls + Lc), ("ST", Ltot)])
     
@@ -478,7 +498,7 @@ with tab2:
         c_sta, d_sta = b_sta + r["Lc"], b_sta + r["Lc"] + r["Ls"]
     
     pad = 0.3 * Ls_sup
-    xr = (b_sta - a_sta) * 2 * n_pct / (e_pct + n_pct)
+    xr = (b_sta - a_sta) * 2 * n_pct / (e_pct + n_pct) if (e_pct + n_pct) != 0 else 0
     
     fig_sup = go.Figure()
     fig_sup.add_trace(go.Scatter(
@@ -506,33 +526,18 @@ with tab3:
     st.markdown("### 🚘 Profil Memanjang & Tampilan 3D Driver's Eye View")
     c1, c2 = st.columns(2)
     with c1:
-        pvi = st.data_editor(
-            pd.DataFrame({"STA (m)": [0.0, 200.0, 400.0, 600.0],
-                          "Elevasi rencana (m)": [100.0, 104.0, 102.0, 106.0],
-                          "Lv manual (m)": [0.0, 0.0, 0.0, 0.0]}),
-            num_rows="dynamic", key="pvi", hide_index=True)
+        st.session_state.pvi_df = st.data_editor(
+            st.session_state.pvi_df,
+            num_rows="dynamic", key="pvi_editor", hide_index=True)
     with c2:
-        tanah = st.data_editor(
-            pd.DataFrame({"STA (m)": [0.0, 100.0, 200.0, 300.0, 400.0, 500.0, 600.0],
-                          "Elevasi tanah asli (m)": [100.5, 102.3, 103.0, 103.4, 102.6, 103.9, 105.2]}),
-            num_rows="dynamic", key="tanah", hide_index=True)
+        st.session_state.tanah_df = st.data_editor(
+            st.session_state.tanah_df,
+            num_rows="dynamic", key="tanah_editor", hide_index=True)
 
-    pvi = pvi.fillna(0.0)
-    if len(pvi.dropna()) >= 2 and pvi.iloc[:, 0].is_unique:
-        P = hitung_profil(pvi, V)
-        P_global = P
+    if P_global is not None:
         gmax = float(np.interp(V, V_TAB, G_MAX_TAB))
-
-        # Integritas 3D: Peta Elevasi Z ke Koordinat Horizontal X, Y
-        z_elev = np.interp(s_vals, P["x"], P["y"])
+        dz = np.gradient(z_elev, s_vals) * 100
         
-        # Hitung Kelandaian Memanjang Real-time
-        dz = np.gradient(z_elev, s_vals) * 100 # % slope
-        
-        # Penentuan Warna Kendaraan berdasarkan Batas Kecepatan & Kelandaian Aman
-        # Evaluasi Kecepatan: Jika v_aktual > v_safe_horiz (di area tikungan) ATAU kelandaian > gmax -> Merah
-        # Jika mendekati batas (90%) -> Kuning, else Hijau
-        frames = []
         car_colors = []
         status_texts = []
         
@@ -553,16 +558,11 @@ with tab3:
             car_colors.append(color)
             status_texts.append(status)
 
-        # Plotly Animated Frame Engine (No time.sleep, Smooth Native Rendering)
         fig_3d = go.Figure()
-        
-        # Model 3D Jalan (Garis As & Tepi)
         fig_3d.add_trace(go.Scatter3d(
             x=x_horiz, y=y_horiz, z=z_elev,
             mode='lines', line=dict(color='black', width=6), name='As Jalan 3D'
         ))
-        
-        # Tepi Jalan Kiri Kanan 3D
         fig_3d.add_trace(go.Scatter3d(
             x=x_horiz + B/2 * nx, y=y_horiz + B/2 * ny, z=z_elev,
             mode='lines', line=dict(color='gray', width=3), name='Tepi Kiri 3D'
@@ -571,8 +571,6 @@ with tab3:
             x=x_horiz - B/2 * nx, y=y_horiz - B/2 * ny, z=z_elev,
             mode='lines', line=dict(color='gray', width=3), name='Tepi Kanan 3D'
         ))
-        
-        # Initial Car Position
         fig_3d.add_trace(go.Scatter3d(
             x=[x_horiz[0]], y=[y_horiz[0]], z=[z_elev[0] + 1.2],
             mode='markers+text',
@@ -580,7 +578,6 @@ with tab3:
             name='Mobil Simulasi', text=["🚘 Mobil"], textposition="top center"
         ))
 
-        # Generate Animation Frames
         frames_list = []
         for i in range(len(s_vals)):
             frames_list.append(go.Frame(
@@ -596,7 +593,6 @@ with tab3:
             ))
         fig_3d.frames = frames_list
 
-        # Slider Animation Controls
         fig_3d.update_layout(
             title="🎮 Simulasi 3D Pandangan Pengemudi (Driver's Eye View Engine)",
             scene=dict(
@@ -621,27 +617,15 @@ with tab3:
             template="plotly_white"
         )
         st.plotly_chart(fig_3d, use_container_width=True)
-        
-        # Indikator Evaluasi Kecepatan Safe Speed
         st.info(f"💡 Kecepatan Aman Tikungan (Safe Speed Horizontal): **{v_safe_horiz:.1f} km/jam** | Kecepatan Simulasi: **{v_aktual} km/jam**")
-
-        # Earthwork Data Prep
-        t_df = tanah.dropna().sort_values(tanah.columns[0])
-        xs = np.arange(math.ceil(P["x"][0] / 50) * 50, P["x"][-1] + 0.1, 50)
-        rn = np.interp(xs, P["x"], P["y"])
-        ta = np.interp(xs, t_df.iloc[:, 0], t_df.iloc[:, 1])
-        df_earthwork_global = pd.DataFrame({
-            "STA_val": xs,
-            "STA": [sta_str(v, 0) for v in xs], "Elevasi rencana (m)": rn.round(3),
-            "Elevasi tanah (m)": ta.round(3), "Selisih (m)": (rn - ta).round(3),
-            "Keterangan": np.where(rn - ta > 0, "Timbunan", "Galian")})
+    else:
+        st.warning("Silakan lengkapi data PPV minimal 2 baris untuk menghasilkan Profil Memanjang.")
 
 # ----------------------------------------------------------------------------
 # TAB 4: GIS, IMPORT & EXPORT (CSV, EXCEL, DXF, KML, MAPS)
 # ----------------------------------------------------------------------------
 with tab4:
     st.subheader("📥 Import Data Survei & 📤 Ekspor CAD/KML/GIS")
-    
     st.markdown("#### 1. Import Titik Survei (Total Station / GPS)")
     file_upload = st.file_uploader("Unggah File Data Survei (CSV atau Excel)", type=["csv", "xlsx"])
     if file_upload is not None:
@@ -661,28 +645,23 @@ with tab4:
     
     with col_gis1:
         st.markdown("**Format Koordinat Awal (UTM / Lat-Long):**")
-        crs_input = st.selectbox("Sistem Koordinat Inputs", ["UTM Zone 49S (Jawa)", "UTM Zone 48S (Sumatra)", "WGS84 Lat-Long"], index=0)
         lat_ref = st.number_input("Latitude Reference Pier/Start Point", -11.0, 6.0, -7.5000, format="%.6f")
         lon_ref = st.number_input("Longitude Reference Pier/Start Point", 95.0, 141.0, 110.5000, format="%.6f")
         
-        # Transformation using Pyproj
         lats_projected = lat_ref + (y_horiz / 111000.0)
         lons_projected = lon_ref + (x_horiz / (111000.0 * math.cos(math.radians(lat_ref))))
 
-        # GIS Satellite Overlay Plotly Mapbox/OpenStreetMap
-        fig_map = px.scatter_mapbox(
-            pd.DataFrame({'lat': lats_projected, 'lon': lons_projected, 'STA': s_vals}),
-            lat='lat', lon='lon', hover_name='STA', zoom=14, height=400
+        fig_map = px.scatter(
+            pd.DataFrame({'Latitude': lats_projected, 'Longitude': lons_projected, 'STA': [sta_str(s) for s in s_vals]}),
+            x='Longitude', y='Latitude', hover_name='STA', title="Proyeksi Geografis Trase Jalan (Lat/Long)"
         )
-        fig_map.update_layout(mapbox_style="open-street-map", margin={"r":0,"t":0,"l":0,"b":0})
+        fig_map.update_traces(marker=dict(size=6, color='blue'), mode='lines+markers')
+        fig_map.update_layout(template="plotly_white")
         st.plotly_chart(fig_map, use_container_width=True)
 
     with col_gis2:
         st.markdown("**Unduh File Desain Trase Jalan:**")
-        
-        # Ekspor DXF AutoCAD
-        z_for_dxf = z_elev if P_global else None
-        dxf_content = export_dxf_text(x_horiz, y_horiz, z_for_dxf)
+        dxf_content = export_dxf_text(x_horiz, y_horiz, z_elev)
         st.download_button(
             label="📐 Unduh File CAD (.DXF R12)",
             data=dxf_content,
@@ -690,8 +669,7 @@ with tab4:
             mime="application/dxf"
         )
         
-        # Ekspor KML Google Earth
-        kml_content = export_kml_text(lats_projected, lons_projected, z_for_dxf)
+        kml_content = export_kml_text(lats_projected, lons_projected, z_elev)
         st.download_button(
             label="🌍 Unduh File Google Earth (.KML)",
             data=kml_content,
