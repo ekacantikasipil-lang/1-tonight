@@ -1,13 +1,11 @@
 import io
 import math
-import hashlib
 import numpy as np
 import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Border, Side
-from openpyxl.utils import get_column_letter
 
 st.set_page_config(
     page_title="Geometri Jalan Interaktif - Bina Marga 2021",
@@ -22,7 +20,6 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    # Petunjuk password di pojok kanan atas
     col_top1, col_top2 = st.columns([4, 1])
     with col_top2:
         st.markdown(
@@ -416,19 +413,19 @@ with tab1:
     
     pts_x = [x_horiz[idx_start], x_horiz[idx_end]]
     pts_y = [y_horiz[idx_start], y_horiz[idx_end]]
-    pts_txt = [f"STA {t1_lbl} ({sta_str(r['sta_awal'])})", f"STA {t2_lbl} ({sta_str(r['sta_akhir'])})"]
+    pts_txt = [f"<b>STA {t1_lbl}</b> ({sta_str(r['sta_awal'])})", f"<b>STA {t2_lbl}</b> ({sta_str(r['sta_akhir'])})"]
     
     if not fc:
         idx_sc = np.argmin(np.abs(s_vals - r["Ls"]))
         idx_cs = np.argmin(np.abs(s_vals - (r["Ls"] + r["Lc"])))
         pts_x.extend([x_horiz[idx_sc], x_horiz[idx_cs]])
         pts_y.extend([y_horiz[idx_sc], y_horiz[idx_cs]])
-        pts_txt.extend([f"STA SC ({sta_str(r['sta_awal']+r['Ls'])})", f"STA CS ({sta_str(r['sta_awal']+r['Ls']+r['Lc'])})"])
+        pts_txt.extend([f"<b>STA SC</b> ({sta_str(r['sta_awal']+r['Ls'])})", f"<b>STA CS</b> ({sta_str(r['sta_awal']+r['Ls']+r['Lc'])})"])
 
     fig_2d.add_trace(go.Scatter(
         x=pts_x, y=pts_y, mode='markers+text', name='Titik Utama Tikungan',
         marker=dict(size=10, color='red', symbol='diamond'),
-        text=pts_txt, textposition="top center", font=dict(weight="bold")
+        text=pts_txt, textposition="top center"
     ))
 
     fig_2d.update_layout(
