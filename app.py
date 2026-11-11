@@ -16,17 +16,13 @@ st.set_page_config(
 )
 
 # ----------------------------------------------------------------------------
-# 1. KEAMANAN & AKSED HASHED PASSWORD
+# 1. KEAMANAN & AUTHENTICATION
 # ----------------------------------------------------------------------------
-PASSWORD_HASH = "1f7a63503b41d08bc3eef25ed5e74bbbc0b2c452e8979316584c6c06a4b1ca7b"  # cantikaaa27
-
-def verify_password(password: str) -> bool:
-    return hashlib.sha256(password.encode()).hexdigest() == PASSWORD_HASH
-
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
+    # Petunjuk password di pojok kanan atas
     col_top1, col_top2 = st.columns([4, 1])
     with col_top2:
         st.markdown(
@@ -35,27 +31,28 @@ if not st.session_state.authenticated:
             unsafe_allow_html=True
         )
 
-    st.markdown("<h1 style='text-align: center;'>🛣️ Aplikasi Perencanaan Geometrik Jalan Interaktif</h1>", unsafe_allow_html=True)
-    st.markdown("<h4 style='text-align: center; color: gray;'>Standar TPGJAK 1997 & Pembaruan RAE-01/2021 Bina Marga</h4>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center;'>🛣️ Perencanaan Geometrik Jalan Interaktif</h1>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; color: gray;'>Standar TPGJAK 1997 / RAE 2021</h4>", unsafe_allow_html=True)
     
     st.image(
         "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1200&auto=format&fit=crop",
-        caption="Sistem Perencanaan & Visualisasi 3D Geometri Jalan Interaktif",
+        caption="Aplikasi Perencanaan Geometrik Jalan Interaktif",
         use_column_width=True
     )
     st.markdown("---")
 
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.info("💡 **Petunjuk:** Lihat kanan atas untuk melihat password akses aplikasi.")
+        st.info("💡 **Petunjuk:** Password akses adalah **cantikaaa27**")
         pwd_input = st.text_input("Masukkan Password Akses:", type="password", placeholder="Ketik password di sini...")
 
         if st.button("Masuk Aplikasi 🚀", use_container_width=True):
-            if verify_password(pwd_input):
+            if pwd_input.strip() == "cantikaaa27":
                 st.session_state.authenticated = True
                 st.rerun()
             else:
                 st.error("❌ Password salah! Silakan periksa kembali tulisan di kanan atas.")
+
     st.stop()
 
 # ----------------------------------------------------------------------------
