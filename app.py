@@ -368,11 +368,6 @@ if "tanah_df" not in st.session_state:
         "Elevasi Tanah (m)": [101.0, 103.5, 104.0, 102.5, 101.8, 105.0, 106.5]
     })
 
-if "anim_active" not in st.session_state:
-    st.session_state.anim_active = False
-if "anim_sta_idx" not in st.session_state:
-    st.session_state.anim_sta_idx = 0
-
 P_global = hitung_profil(st.session_state.pvi_df, V)
 if P_global is not None:
     z_elev = np.interp(s_vals, P_global["x"], P_global["y"])
@@ -577,7 +572,6 @@ with tab1:
     else:
         mid_idx = np.argmin(np.abs(s_vals - (r["Ltot"] / 2)))
         
-    # Arah normal menuju pusat kelengkungan (kiri = +normal, kanan = -normal)
     x_center = x_horiz[mid_idx] + sg * r["Rc"] * nx[mid_idx]
     y_center = y_horiz[mid_idx] + sg * r["Rc"] * ny[mid_idx]
     
@@ -617,7 +611,6 @@ with tab1:
             xt0, yt0 = x_horiz[idx_t], y_horiz[idx_t]
             nxt, nyt = nx[idx_t], ny[idx_t]
             
-            # Garis patok melintang kecil
             fig_2d.add_trace(go.Scatter(
                 x=[xt0 - tick_half_len * nxt, xt0 + tick_half_len * nxt],
                 y=[yt0 - tick_half_len * nyt, yt0 + tick_half_len * nyt],
@@ -626,7 +619,6 @@ with tab1:
                 hoverinfo='skip',
                 line=dict(color='#757575', width=1.2)
             ))
-            # Label STA di sisi luar tikungan agar rapi
             lbl_side = -sg
             fig_2d.add_annotation(
                 x=xt0 + lbl_side * (tick_half_len + 2.5) * nxt,
@@ -725,9 +717,7 @@ with tab2:
     ltot_val = r["Ltot"]
     sta_0 = r["sta_awal"]
     
-    # Tentukan posisi titik kritis relatif terhadap STA awal (s = 0 di TS/TC)
     if r["jenis"].startswith("Full"):
-        # Pada Full Circle, transisi biasanya 2/3 Ls di tangen dan 1/3 Ls di dalam lengkung
         s_start_trans = - (2.0 / 3.0) * ls_val
         s_full_start = (1.0 / 3.0) * ls_val
         s_full_end = ltot_val - (1.0 / 3.0) * ls_val
@@ -748,13 +738,10 @@ with tab2:
             krit_s = [0.0, ls_val, ltot_val - ls_val, ltot_val]
             krit_lbl = ["TS", "SC", "CS", "ST"]
 
-    # Hitung titik nol (kemiringan tepi luar = 0%) pada zona runout
-    # Tepi luar naik linear dari -en ke +e sepanjang (s_full_start - s_start_trans)
     trans_len = s_full_start - s_start_trans
     s_zero_1 = s_start_trans + trans_len * (en_val / (e_desain + en_val))
     s_zero_2 = s_end_trans - trans_len * (en_val / (e_desain + en_val))
     
-    # Titik belok tepi dalam saat tepi luar mencapai +en (crown removal selesai)
     s_crown_1 = s_start_trans + trans_len * ((2 * en_val) / (e_desain + en_val))
     s_crown_2 = s_end_trans - trans_len * ((2 * en_val) / (e_desain + en_val))
 
@@ -762,7 +749,6 @@ with tab2:
     s_min_sup = min(0.0, s_start_trans) - margin_s
     s_max_sup = max(ltot_val, s_end_trans) + margin_s
     
-    # Evaluasi piecewise tepat di titik-titik simpul agar garis patah tajam & akurat
     key_nodes = np.unique(np.sort([
         s_min_sup, s_start_trans, s_zero_1, s_crown_1,
         s_full_start, s_full_end, s_crown_2, s_zero_2, s_end_trans, s_max_sup
@@ -791,7 +777,6 @@ with tab2:
     
     fig_sup = go.Figure()
     
-    # Arsiran transisi lembut di bawah kurva luar & dalam
     fig_sup.add_trace(go.Scatter(
         x=sta_nodes, y=e_luar,
         mode='lines',
@@ -810,10 +795,8 @@ with tab2:
         fillcolor='rgba(13, 71, 161, 0.05)'
     ))
     
-    # Garis Sumbu Jalan (0%)
     fig_sup.add_hline(y=0, line_width=1.2, line_color="#424242")
     
-    # Titik Nol Kemiringan (0%) pada Tepi Luar
     fig_sup.add_trace(go.Scatter(
         x=[sta_0 + s_zero_1, sta_0 + s_zero_2],
         y=[0.0, 0.0],
@@ -822,7 +805,6 @@ with tab2:
         marker=dict(size=8, color='#111111', symbol='circle')
     ))
     
-    # Garis Vertikal Putus-putus & Label STA untuk TS, SC, CS, ST
     y_top_limit = max(e_desain + 3.5, 13.0)
     y_bot_limit = min(-e_desain - 3.5, -13.0)
     
@@ -838,7 +820,6 @@ with tab2:
             bordercolor="#E0E0E0", borderwidth=1, borderpad=3
         )
         
-    # Anotasi nilai +e, -e, dan en
     mid_full_sta = sta_0 + (s_full_start + s_full_end) / 2
     fig_sup.add_annotation(
         x=mid_full_sta, y=e_desain + 0.9,
@@ -862,7 +843,6 @@ with tab2:
         bgcolor="rgba(255,255,255,0.92)", borderpad=2
     )
     
-    # Format tick sumbu X menjadi stasioning (0+150, 0+200, dst.)
     tick_step = 50.0
     x_tick_vals = np.arange(
         math.ceil(sta_nodes[0] / tick_step) * tick_step,
@@ -911,7 +891,7 @@ with tab2:
     st.plotly_chart(fig_sup, use_container_width=True)
 
 # ----------------------------------------------------------------------------
-# TAB 3: PROFIL MEMANJANG & SIMULASI 3D
+# TAB 3: PROFIL MEMANJANG & SIMULASI 3D (SMOOTH PLOTLY ANIMATION)
 # ----------------------------------------------------------------------------
 with tab3:
     st.markdown("<h3 style='color: #3A0056;'>🚘 Visualisasi 3D Jalan & Simulator Mobil Jalan Otomatis</h3>", unsafe_allow_html=True)
@@ -954,76 +934,133 @@ with tab3:
         
     st.markdown(status_box, unsafe_allow_html=True)
 
-    c_btn1, c_btn2, c_btn3 = st.columns([1, 1, 2])
-    with c_btn1:
-        if st.button("▶️ Jalan / Pause Mobil", use_container_width=True):
-            st.session_state.anim_active = not st.session_state.anim_active
-    with c_btn2:
-        if st.button("🔄 Reset Ke Awal", use_container_width=True):
-            st.session_state.anim_sta_idx = 0
-            st.session_state.anim_active = False
-            st.rerun()
-    with c_btn3:
-        speed_delay = st.slider("⚡ Kecepatan Animasi:", 0.01, 0.5, 0.05, 0.01)
+    # Buat sampling titik untuk frame animasi agar mulus & ringan (sekitar 60 frame)
+    step_frame = max(1, len(s_vals) // 60)
+    frame_indices = list(range(0, len(s_vals), step_frame))
+    if frame_indices[-1] != len(s_vals) - 1:
+        frame_indices.append(len(s_vals) - 1)
 
-    current_idx = st.session_state.anim_sta_idx
-    selected_sta = st.slider(
-        "🎮 Kontrol Posisi Mobil / STA (m):", 
-        float(s_vals[0]), float(s_vals[-1]), 
-        float(s_vals[current_idx]), 5.0
-    )
-    
-    if not st.session_state.anim_active:
-        st.session_state.anim_sta_idx = np.argmin(np.abs(s_vals - selected_sta))
-        current_idx = st.session_state.anim_sta_idx
+    # Durasi per frame disesuaikan dengan kecepatan kendaraan (v_sim)
+    frame_duration = max(30, int(4000 / max(v_sim, 10)))
 
-    xc, yc, zc = x_horiz[current_idx], y_horiz[current_idx], z_elev[current_idx]
+    # Susun Frames Animasi Mobil
+    frames = []
+    slider_steps = []
+    for idx in frame_indices:
+        sta_lbl = f"STA {sta_str(r['sta_awal'] + s_vals[idx])}"
+        frames.append(go.Frame(
+            data=[go.Scatter3d(
+                x=[x_horiz[idx]],
+                y=[y_horiz[idx]],
+                z=[z_elev[idx] + 1.2],
+                mode='markers+text',
+                marker=dict(size=12, color=car_color, symbol='diamond'),
+                text=[f"🚘 {sta_lbl}"],
+                textposition="top center",
+                textfont=dict(color="#111111", size=12)
+            )],
+            traces=[0],
+            name=str(idx)
+        ))
+        slider_steps.append({
+            "args": [[str(idx)], {"frame": {"duration": 0, "redraw": True}, "mode": "immediate"}],
+            "label": f"{s_vals[idx]:.0f}m",
+            "method": "animate"
+        })
 
-    fig_3d = go.Figure()
-    
-    fig_3d.add_trace(go.Scatter3d(
-        x=x_horiz, y=y_horiz, z=z_elev, mode='lines', name='As Jalan 3D',
-        line=dict(color='#3A0056', width=6)
-    ))
-    fig_3d.add_trace(go.Scatter3d(x=xl, y=yl, z=z_elev, mode='lines', name='Tepi Kiri 3D', line=dict(color='#C2185B', width=3)))
-    fig_3d.add_trace(go.Scatter3d(x=xr, y=yr, z=z_elev, mode='lines', name='Tepi Kanan 3D', line=dict(color='#C2185B', width=3)))
-    
-    fig_3d.add_trace(go.Scatter3d(
-        x=[xc], y=[yc], z=[zc + 1.2], mode='markers+text', name='Mobil Simulasi',
-        marker=dict(size=12, color=car_color, symbol='diamond'),
-        text=[f"🚘 Mobil (STA {s_vals[current_idx]:.0f}m)"], textposition="top center",
-        textfont=dict(color="#111111", size=12)
-    ))
-
-    dx_cam = np.cos(ths_[current_idx]) * 20
-    dy_cam = np.sin(ths_[current_idx]) * 20
-    
-    camera_eye = dict(
-        x=(xc - dx_cam) / 100,
-        y=(yc - dy_cam) / 100,
-        z=(zc + 3.0) / 100
+    fig_3d = go.Figure(
+        data=[
+            # Trace 0: Mobil Simulasi (yang bergerak antar frame)
+            go.Scatter3d(
+                x=[x_horiz[0]], y=[y_horiz[0]], z=[z_elev[0] + 1.2],
+                mode='markers+text', name='Mobil Simulasi',
+                marker=dict(size=12, color=car_color, symbol='diamond'),
+                text=[f"🚘 STA {sta_str(r['sta_awal'] + s_vals[0])}"],
+                textposition="top center",
+                textfont=dict(color="#111111", size=12)
+            ),
+            # Trace 1: As Jalan 3D
+            go.Scatter3d(
+                x=x_horiz, y=y_horiz, z=z_elev, mode='lines', name='As Jalan 3D',
+                line=dict(color='#3A0056', width=6)
+            ),
+            # Trace 2 & 3: Tepi Kiri & Kanan 3D
+            go.Scatter3d(
+                x=xl, y=yl, z=z_elev, mode='lines', name='Tepi Kiri 3D',
+                line=dict(color='#C2185B', width=3)
+            ),
+            go.Scatter3d(
+                x=xr, y=yr, z=z_elev, mode='lines', name='Tepi Kanan 3D',
+                line=dict(color='#C2185B', width=3)
+            ),
+        ],
+        frames=frames
     )
 
     fig_3d.update_layout(
-        title=dict(text=f"Visualisasi 3D Trase Jalan & Simulator Mobil (STA {s_vals[current_idx]:.1f} m)", font=dict(color='#111111', size=16)),
+        title=dict(
+            text="Visualisasi 3D Trase Jalan & Simulator Mobil (Klik ▶️ Jalan di Kiri Bawah Grafik)",
+            font=dict(color='#111111', size=16)
+        ),
         template="plotly_white",
         scene=dict(
             xaxis_title="X (m)", yaxis_title="Y (m)", zaxis_title="Elevasi Z (m)",
-            aspectmode='data', camera_eye=camera_eye
+            aspectmode='data'
         ),
-        legend=dict(bgcolor="rgba(255,255,255,0.95)", font=dict(color="#111111")),
-        margin=dict(l=0, r=0, b=0, t=40),
+        legend=dict(
+            bgcolor="rgba(255,255,255,0.95)",
+            bordercolor="#9E9E9E", borderwidth=1,
+            font=dict(color="#111111")
+        ),
+        updatemenus=[{
+            "type": "buttons",
+            "showactive": True,
+            "x": 0.02, "y": 0.02,
+            "xanchor": "left", "yanchor": "bottom",
+            "bgcolor": "#FCE4EC",
+            "bordercolor": "#AD1457",
+            "font": {"color": "#880E4F", "size": 13},
+            "buttons": [
+                {
+                    "label": "▶️ Jalan",
+                    "method": "animate",
+                    "args": [None, {
+                        "frame": {"duration": frame_duration, "redraw": True},
+                        "fromcurrent": True,
+                        "transition": {"duration": 0}
+                    }]
+                },
+                {
+                    "label": "⏸️ Pause",
+                    "method": "animate",
+                    "args": [[None], {
+                        "frame": {"duration": 0, "redraw": False},
+                        "mode": "immediate",
+                        "transition": {"duration": 0}
+                    }]
+                }
+            ]
+        }],
+        sliders=[{
+            "active": 0,
+            "yanchor": "top", "xanchor": "left",
+            "currentvalue": {
+                "font": {"size": 13, "color": "#3A0056"},
+                "prefix": "Posisi Relatif: ",
+                "visible": True,
+                "xanchor": "right"
+            },
+            "pad": {"b": 10, "t": 40},
+            "len": 0.82, "x": 0.16, "y": 0.02,
+            "steps": slider_steps
+        }],
+        margin=dict(l=0, r=0, b=40, t=50),
+        height=620,
         paper_bgcolor="#FFFFFF",
         font=dict(color="#111111")
     )
-    st.plotly_chart(fig_3d, use_container_width=True)
 
-    if st.session_state.anim_active:
-        time.sleep(speed_delay)
-        st.session_state.anim_sta_idx += 4
-        if st.session_state.anim_sta_idx >= len(s_vals):
-            st.session_state.anim_sta_idx = 0
-        st.rerun()
+    st.plotly_chart(fig_3d, use_container_width=True)
 
 # ----------------------------------------------------------------------------
 # TAB 4: PROFIL MEMANJANG & EKSPOR CAD
